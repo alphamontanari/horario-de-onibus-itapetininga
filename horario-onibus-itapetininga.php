@@ -28,9 +28,9 @@ define('HOR2_DIR', plugin_dir_path(__FILE__));
 define('HOR2_ASSETS_DIR', trailingslashit(HOR2_DIR . 'assets'));
 
 /** Identificação do plugin original (NÃO precisa editar o original) */
-define('HOR_ORIG_DIRNAME', 'horario-onibus-itapetininga'); // nome da pasta do plugin original
+define('HOR_ORIG_DIRNAME', 'horario-onibus-itapetininga-main'); // nome real da pasta
 define('HOR_ORIG_MAIN', HOR_ORIG_DIRNAME . '/horario-onibus-itapetininga.php'); // arquivo principal
-define('HOR_ORIG_SLUG', 'horario-onibus-itapetininga'); // slug/rota do original
+define('HOR_ORIG_SLUG', 'horario-onibus-itapetininga'); // slug da rota do original (não muda)
 define('HOR_ORIG_LINES_DIR', trailingslashit(WP_PLUGIN_DIR . '/' . HOR_ORIG_DIRNAME . '/assets/linhas'));
 
 /** Regras de rota do fork */
@@ -172,7 +172,7 @@ add_action('template_redirect', function () {
   </head>
   <body>
     <div class="wrap">
-      <div class="card">
+      <div class="card header">
         <h1 class="title">Horário de Ônibus — Itapetininga</h1>
         <p class="muted">Versão derivada com tema/JS próprios (rota: /<?php echo esc_html(HOR2_SLUG); ?>) consumindo dados do plugin original.</p>
       </div>
