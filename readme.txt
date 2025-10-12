@@ -1,65 +1,71 @@
-=== Horário Ônibus Itapetininga ===
+=== Horário de Ônibus Itapetininga (Derivado) ===
 Contributors: alphamontanari
 Tags: ônibus, transporte público, itapetininga, horários, mobilidade
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.3.1
+Stable tag: 0.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Plugin para melhorar a visualização de horários de ônibus pela população de Itapetininga-SP.  
-Desenvolvido por André Luiz Montanari, servidor público da área de comunicação da Prefeitura Municipal de Itapetininga.
+Fork com tema/JS próprios em rota alternativa (/horario-de-onibus-itapetininga) consumindo as linhas do plugin original.
 
 == Description ==
-Este plugin permite que cidadãos consultem, de forma rápida e fluída, os horários das linhas de ônibus municipais.
+Este plugin oferece uma interface alternativa (tema/JS próprios) para consulta dos horários das linhas de ônibus municipais de Itapetininga, **reutilizando os dados (linhas/*.js) do plugin original**.
 
-**Principais características:**
-- Desenvolvido em **JavaScript, HTML, CSS e PHP**, instalável em WordPress.
-- Base de dados estruturada em arquivos constantes `Linha__`, localizados no diretório `linhas/`.
-- O PHP renderiza as linhas consumindo funções do `main.js`.
-- A navegação é **em tempo real e síncrona**, sem refresh da página, proporcionando uma experiência fluida.
+**Como funciona a dependência de dados:**
+- Se o **plugin original** “Horário Ônibus Itapetininga” estiver **ativo**, as linhas são servidas pela rota limpa do original: `/horario-onibus-itapetininga/linhas/...`
+- Se o original **não estiver ativo**, o fork faz **fallback** para os arquivos estáticos em:
+  `/wp-content/plugins/horario-onibus-itapetininga/assets/linhas/*.js`
 
-**Três níveis de interface:**
-1. **Linhas**: lista geral de todas as linhas disponíveis.  
-2. **Horários por linha**: ao selecionar uma linha, os horários são exibidos em abas: *Dia de semana*, *Sábado*, *Domingo e feriados*.  
-3. **Detalhe do horário**: ao selecionar um horário, o usuário vê o itinerário completo com os horários previstos.
+> Recomendado: manter o plugin original ativo para melhor controle de cache e headers.
 
-O plugin também controla o **estado da navegação via URL**, permitindo compartilhar links diretos para linhas e horários específicos.  
-Exemplo em produção: [https://9itape.com.br/horario-onibus-itapetininga](https://9itape.com.br/horario-onibus-itapetininga)
+**Principais características do fork:**
+- Rota própria: `https://SEUSITE/horario-de-onibus-itapetininga`
+- Tema/CSS e JS independentes do original (você pode personalizar cores, layout e UX).
+- Consome as constantes `LinhaXX` (mesma estrutura do original), sem duplicar dados.
+- Navegação fluída, sem refresh, com possibilidade de compartilhar URLs de estados internos.
 
-== Versionamento ==
-O plugin utiliza **4 níveis de controle de versão**:
-
-1. **MAJOR** – Mudanças de paradigma, arquitetura, nomenclatura de arquivos principais (pode gerar quebra de compatibilidade).  
-2. **MINOR** – Criação de novas features ou alterações significativas em telas.  
-3. **PATCH** – Ajustes em funcionalidades dentro das telas, melhorias incrementais.  
-4. **BUILD** – Inclusão, alteração ou manutenção de pequenos detalhes (CSS, cores, tamanhos, inclusão de novas linhas etc).  
-
-Exemplo: `1.3.2.4`  
-- `1` = mudança estrutural  
-- `3` = nova feature/tela  
-- `2` = mudança funcional dentro da tela  
-- `4` = ajuste fino ou hotfix  
+**Sobre o plugin original (provedor dos dados):**
+- Desenvolvido por André Luiz Montanari para visualização de horários.
+- Base de dados estruturada em `assets/linhas/*.js` (constantes do tipo `Linha__`).
+- Repositório original: https://github.com/alphamontanari/horario-onibus-itapetininga
 
 == Installation ==
-1. Baixe o ZIP do repositório ou da release.  
-2. No WordPress, acesse **Plugins > Adicionar novo > Enviar plugin**.  
-3. Faça upload do arquivo `.zip` e clique em **Instalar agora**.  
-4. Ative o plugin em **Plugins > Instalados**.  
+1. Baixe o ZIP deste repositório (fork) e envie para `Plugins > Adicionar novo > Enviar plugin`.
+2. Ative **Horário de Ônibus Itapetininga (Derivado)**.
+3. (Recomendado) Ative também o **plugin original** “Horário Ônibus Itapetininga”.
+4. Acesse: `/horario-de-onibus-itapetininga`.
+
+**Observações importantes**
+- Com o original **ativo**, o fork consome as linhas via **rota limpa do original**.
+- Sem o original, o fork buscará as linhas por **URL estática** em `/wp-content/plugins/horario-onibus-itapetininga/assets/linhas/`.
+- Caso a pasta do plugin original tenha sido renomeada, ajuste esse caminho no código do fork.
+
+== Frequently Asked Questions ==
+= O fork funciona sem o plugin original ativo? =
+Sim, via fallback para os arquivos estáticos no diretório do plugin original. Porém, é **recomendado** manter o original ativo para usar a rota limpa e aproveitar headers/cache configurados por ele.
+
+= As linhas precisam ser duplicadas no fork? =
+Não. O fork **não** duplica `linhas/*.js`. Ele apenas **consome** os arquivos do plugin original.
+
+= Os slugs entram em conflito? =
+Não. O original usa `/horario-onibus-itapetininga` e o fork usa `/horario-de-onibus-itapetininga`.
+
+= Posso personalizar cores e layout no fork? =
+Sim. Edite `assets/style.css` e `assets/main.js` do fork à vontade.
 
 == Screenshots ==
-1. Lista de todas as linhas.  
-2. Exibição dos horários em abas (Dia de semana, Sábado, Domingo/Feriado).  
-3. Detalhe do itinerário e horários previstos.  
+1. Tela inicial do fork com tema próprio.
+2. Lista de linhas carregadas a partir do plugin original.
+3. Exemplo de detalhamento/itinerário com UI alternativa.
 
 == Changelog ==
-= 1.3.1 =
-* Versão estável com renderização em três níveis (Linhas → Horários → Itinerário).
-* Controle de estado via URL para compartilhamento direto.
-* Estrutura pronta para atualização via Git Updater.
+= 0.1.0 =
+* Primeira versão do fork.
+* Consumo das linhas do plugin original (rota limpa se ativo, fallback estático se inativo).
+* Rota própria e assets independentes para tema/JS.
 
 == Upgrade Notice ==
-= 1.3.1 =
-Recomenda-se atualização para manter a compatibilidade e a experiência de navegação fluída.
-
+= 0.1.0 =
+Versão inicial do fork. Recomenda-se manter o plugin original ativo para melhor performance no fornecimento das linhas.

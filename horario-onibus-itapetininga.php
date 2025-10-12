@@ -1,10 +1,21 @@
 <?php
 /**
  * Plugin Name: Horário de Ônibus Itapetininga (Derivado)
+ * Plugin URI:  https://github.com/alphamontanari/horario-de-onibus-itapetininga
  * Description: Fork com tema/JS próprios em rota alternativa (/horario-de-onibus-itapetininga) consumindo as linhas do plugin original.
- * Version: 0.1.0
- * Author: André Luiz Montanari
- * License: GPLv3
+ * Version:     0.1.0
+ * Author:      André Luiz Montanari
+ * Author URI:  https://github.com/alphamontanari
+ * License:     GPLv3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
+ * Text Domain: horario-de-onibus-itapetininga
+ * Domain Path: /languages
+ *
+ * Update URI:  https://github.com/alphamontanari/horario-de-onibus-itapetininga
+ *
+ * GitHub Plugin URI: alphamontanari/horario-de-onibus-itapetininga
+ * Primary Branch:    main
+ * Release Asset:     true
  */
 
 if (!defined('ABSPATH')) { exit; }
