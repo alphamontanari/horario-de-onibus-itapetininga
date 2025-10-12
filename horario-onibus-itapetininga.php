@@ -1,0 +1,192 @@
+<?php
+/**
+ * Plugin Name: Horário de Ônibus Itapetininga (Derivado)
+ * Description: Fork com tema/JS próprios em rota alternativa (/horario-de-onibus-itapetininga) consumindo as linhas do plugin original.
+ * Version: 0.1.0
+ * Author: André Luiz Montanari
+ * License: GPLv3
+ */
+
+if (!defined('ABSPATH')) { exit; }
+
+/** Slug/rota deste fork */
+define('HOR2_SLUG', 'horario-de-onibus-itapetininga');
+
+/** Caminhos internos deste fork */
+define('HOR2_DIR', plugin_dir_path(__FILE__));
+define('HOR2_ASSETS_DIR', trailingslashit(HOR2_DIR . 'assets'));
+
+/** Identificação do plugin original (NÃO precisa editar o original) */
+define('HOR_ORIG_DIRNAME', 'horario-onibus-itapetininga'); // nome da pasta do plugin original
+define('HOR_ORIG_MAIN', HOR_ORIG_DIRNAME . '/horario-onibus-itapetininga.php'); // arquivo principal
+define('HOR_ORIG_SLUG', 'horario-onibus-itapetininga'); // slug/rota do original
+define('HOR_ORIG_LINES_DIR', trailingslashit(WP_PLUGIN_DIR . '/' . HOR_ORIG_DIRNAME . '/assets/linhas'));
+
+/** Regras de rota do fork */
+add_action('init', function () {
+  add_rewrite_tag('%hor2%', '([0-1])');
+  add_rewrite_tag('%hor2_asset%', '(.+)');
+
+  add_rewrite_rule('^' . HOR2_SLUG . '/?$', 'index.php?hor2=1', 'top');
+  add_rewrite_rule('^' . HOR2_SLUG . '/(.+)$', 'index.php?hor2=1&hor2_asset=$matches[1]', 'top');
+});
+
+register_activation_hook(__FILE__, function () {
+  do_action('init');
+  flush_rewrite_rules();
+});
+register_deactivation_hook(__FILE__, function () {
+  flush_rewrite_rules();
+});
+
+/** MIME simples */
+function hor2_mime($ext) {
+  $map = [
+    'css' => 'text/css; charset=UTF-8',
+    'js'  => 'application/javascript; charset=UTF-8',
+    'json'=> 'application/json; charset=UTF-8',
+    'png' => 'image/png',
+    'jpg' => 'image/jpeg',
+    'jpeg'=> 'image/jpeg',
+    'gif' => 'image/gif',
+    'svg' => 'image/svg+xml',
+    'webp'=> 'image/webp',
+    'html'=> 'text/html; charset=UTF-8',
+    'woff'=> 'font/woff',
+    'woff2'=>'font/woff2',
+    'ttf' => 'font/ttf',
+    'otf' => 'font/otf',
+    'map' => 'application/json; charset=UTF-8',
+  ];
+  $ext = strtolower((string) $ext);
+  return $map[$ext] ?? 'application/octet-stream';
+}
+
+/** Servir assets do fork via rota limpa */
+function hor2_serve_asset($rel_path) {
+  $clean = ltrim((string)$rel_path, '/');
+  if (strpos($clean, 'assets/') === 0) $clean = substr($clean, 7);
+
+  $base = realpath(HOR2_ASSETS_DIR);
+  $file = realpath(HOR2_ASSETS_DIR . $clean);
+
+  if (!$base || !$file || !is_file($file) || strpos($file, $base) !== 0) {
+    status_header(404);
+    exit;
+  }
+
+  $ext = pathinfo($file, PATHINFO_EXTENSION);
+  header('Content-Type: ' . hor2_mime($ext));
+  header('Cache-Control: public, max-age=300');
+  readfile($file);
+  exit;
+}
+
+/**
+ * Coleta dinâmica das linhas DIRETO DO PLUGIN ORIGINAL
+ * - Se o original estiver ativo, usa a rota limpa dele (/horario-onibus-itapetininga/linhas/...).
+ * - Se não estiver ativo, usa fallback para URL estática em /wp-content/plugins/...
+ * (Não altera nada no plugin original)
+ */
+function hor2_collect_linhas_from_original() {
+  $orig_ativo = false;
+  if (file_exists(ABSPATH . 'wp-admin/includes/plugin.php')) {
+    include_once ABSPATH . 'wp-admin/includes/plugin.php';
+    if (function_exists('is_plugin_active')) {
+      $orig_ativo = is_plugin_active(HOR_ORIG_MAIN);
+    }
+  }
+
+  $linhas_files = [];
+  $linhas_vars  = [];
+
+  if (is_dir(HOR_ORIG_LINES_DIR)) {
+    $files = glob(HOR_ORIG_LINES_DIR . '*.js') ?: [];
+    natsort($files);
+
+    foreach ($files as $full) {
+      $base = basename($full);                     // ex.: linha01A.js
+      $name = preg_replace('/\.js$/i', '', $base); // ex.: linha01A
+      $var  = preg_replace('/^linha/', 'Linha', $name);
+
+      // Preferir rota do original quando ativo (melhor cache/headers)
+      if ($orig_ativo) {
+        $url = home_url('/' . HOR_ORIG_SLUG . '/linhas/' . $base);
+      } else {
+        // Fallback: URL estática ao arquivo físico do plugin original
+        $url = content_url('plugins/' . HOR_ORIG_DIRNAME . '/assets/linhas/' . $base);
+      }
+
+      $linhas_files[] = ['url' => $url, 'var' => $var];
+      $linhas_vars[]  = $var;
+    }
+  }
+
+  return [$linhas_files, $linhas_vars];
+}
+
+/** Página + assets (router do fork) */
+add_action('template_redirect', function () {
+  if ((int) get_query_var('hor2') !== 1) return;
+
+  // Proxy de assets do fork
+  $asset = get_query_var('hor2_asset');
+  if (!empty($asset)) hor2_serve_asset($asset);
+
+  // Coletar as linhas do plugin ORIGINAL (sem modificá-lo)
+  list($linhas_files, $linhas_vars) = hor2_collect_linhas_from_original();
+
+  status_header(200);
+  nocache_headers();
+  header('Content-Type: text/html; charset=' . get_bloginfo('charset'), true);
+  ?>
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="<?php echo esc_attr(get_bloginfo('charset')); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horário de Ônibus — Itapetininga (Derivado)</title>
+
+    <!-- CSS do fork -->
+    <link rel="stylesheet" href="<?php echo esc_url(home_url('/' . HOR2_SLUG . '/style.css')); ?>">
+
+    <style>
+      /* pequenos defaults (você pode mover tudo para style.css) */
+      body{margin:0;background:#f7f9fc;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+      .wrap{max-width:1100px;margin:0 auto;padding:16px}
+      .card{background:#fff;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.06);padding:16px;margin:12px 0}
+      .title{font-size:clamp(18px,2.6vw,28px);font-weight:700;margin:0}
+      .muted{color:#556}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1 class="title">Horário de Ônibus — Itapetininga</h1>
+        <p class="muted">Versão derivada com tema/JS próprios (rota: /<?php echo esc_html(HOR2_SLUG); ?>) consumindo dados do plugin original.</p>
+      </div>
+
+      <div id="crumbs" class="crumbs" aria-live="polite"></div>
+      <div id="app" class="card">Carregando…</div>
+    </div>
+
+    <!-- IMPORTAR DADOS DE LINHAS (dinâmico, vindos do plugin original) -->
+    <?php foreach ($linhas_files as $f): ?>
+      <script src="<?php echo esc_url($f['url']); ?>"></script>
+    <?php endforeach; ?>
+
+    <!-- CRIAR BD DE LINHAS (compatível com const/let/var) -->
+    <script>
+      const LINHAS = {};
+      <?php foreach ($linhas_vars as $v): ?>
+        try { if (typeof <?php echo $v; ?> !== 'undefined') LINHAS.<?php echo $v; ?> = <?php echo $v; ?>; } catch (e) {}
+      <?php endforeach; ?>
+    </script>
+
+    <!-- JS do fork (sua UI v2) -->
+    <script src="<?php echo esc_url(home_url('/' . HOR2_SLUG . '/main.js')); ?>"></script>
+  </body>
+  </html>
+  <?php
+  exit;
+});
