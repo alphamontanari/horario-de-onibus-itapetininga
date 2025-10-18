@@ -54,7 +54,8 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-u
   letter-spacing: -0.02em;
 }
 .header .logo{
-  width: 100%;max-width: 120px;
+  width: 100%;
+  min-width: 480px;
   height: auto;
 }
 .header p{
