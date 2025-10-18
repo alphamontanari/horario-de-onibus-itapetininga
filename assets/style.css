@@ -3,20 +3,20 @@
    ========================= */
 :root{
   /* Core */
-  --brand: #0088c7;           /* roxinho base */
-  --brand-2: #00AAC7;         /* roxinho claro */
+  --brand: #7a3cff;           /* roxinho base */
+  --brand-2: #9c6bff;         /* roxinho claro */
   --brand-3: #4f22ff;         /* roxinho escuro */
-  --ink: #147c8f;             /* slate-900 */
-  --muted: #056c7e;           /* lavanda acinzentada */
+  --ink: #812d8d;             /* slate-900 */
+  --muted: #850097;           /* lavanda acinzentada */
 
   /* Surface */
   --bg: #f7f7fb;              /* fundo claro */
-  --card: #0a6f81;
+  --card: #7a3cff;
 ;
   --line: #e8ecf7;
 
   /* Tabs */
-  --aba: #00AAC7;
+  --aba: #7a3cff;
   --abaActive: #ffffff;
 
   /* Radii + shadows */
@@ -41,7 +41,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-u
   padding: 32px 22px;
   color: #fff;
   background:
-    radial-gradient(1200px 400px at 10% -10%, #00414d 0%, transparent 55%),
+    radial-gradient(1200px 400px at 10% -10%, #b892ff33 0%, transparent 55%),
     radial-gradient(900px 500px at 110% 10%, #6e36ff44 0%, transparent 50%),
     linear-gradient(135deg, #5a20ff 0%, #7a3cff 45%, #9b6bff 100%);
   box-shadow: var(--elev-2);
