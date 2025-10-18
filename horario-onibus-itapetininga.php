@@ -156,25 +156,17 @@ add_action('template_redirect', function () {
   <head>
     <meta charset="<?php echo esc_attr(get_bloginfo('charset')); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horário de Ônibus — Itapetininga (Derivado)</title>
+    <title>Horário de Ônibus</title>
 
     <!-- CSS do fork -->
     <link rel="stylesheet" href="<?php echo esc_url(home_url('/' . HOR2_SLUG . '/style.css')); ?>">
 
-    <style>
-      /* pequenos defaults (você pode mover tudo para style.css) */
-      body{margin:0;background:#f7f9fc;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
-      .wrap{max-width:1100px;margin:0 auto;padding:16px}
-      .card{background:#fff;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.06);padding:16px;margin:12px 0}
-      .title{font-size:clamp(18px,2.6vw,28px);font-weight:700;margin:0}
-      .muted{color:#556}
-    </style>
   </head>
   <body>
     <div class="wrap">
       <div class="card header">
         <h1 class="title">Horário de Ônibus — Itapetininga</h1>
-        <p class="muted">Versão derivada com tema/JS próprios (rota: /<?php echo esc_html(HOR2_SLUG); ?>) consumindo dados do plugin original.</p>
+        <p class="subtitle">Versão derivada com tema/JS próprios (rota: /<?php echo esc_html(HOR2_SLUG); ?>) consumindo dados do plugin original.</p>
       </div>
 
       <div id="crumbs" class="crumbs" aria-live="polite"></div>
