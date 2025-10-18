@@ -192,6 +192,130 @@ add_action('template_redirect', function () {
     </button>
     <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
 
+    <!-- BOTÕES -->
+    <button id="shareBtn" class="fab-share" type="button" aria-label="Compartilhar">📤 <span
+        class="label">Compartilhar</span></button>
+    <button id="copyLinkBtn" class="fab-copy" type="button" aria-label="Copiar link">🔗 <span class="label">Copiar
+        endereço</span></button>
+    <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
+
+    <!-- OPCIONAL: menu de fallback com apps -->
+    <div id="shareFallback" hidden>
+      <a id="waLink" target="_blank" rel="noopener">WhatsApp</a> ·
+      <a id="tgLink" target="_blank" rel="noopener">Telegram</a> ·
+      <a id="xLink" target="_blank" rel="noopener">X/Twitter</a> ·
+      <a id="fbLink" target="_blank" rel="noopener">Facebook</a>
+    </div>
+
+    <script>
+      (function () {
+        const shareBtn = document.getElementById('shareBtn');
+        const copyBtn = document.getElementById('copyLinkBtn');
+        const hint = document.getElementById('copyLinkHint');
+        const fbk = document.getElementById('shareFallback');
+        const waLink = document.getElementById('waLink');
+        const tgLink = document.getElementById('tgLink');
+        const xLink = document.getElementById('xLink');
+        const fbLink = document.getElementById('fbLink');
+
+        // Texto padrão (ajuste como quiser)
+        function getShareData() {
+          const url = window.location.href;
+          const title = document.title || 'Veja isto';
+          const text = 'Dá uma olhada:';
+          return { url, title, text };
+        }
+
+        // COPIAR (seu código com leve ajuste)
+        async function copy(text) {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (!ok) throw new Error('copy fallback falhou');
+          return true;
+        }
+
+        function flash(msg, timeout = 1500) {
+          hint.textContent = msg;
+          clearTimeout(flash._t);
+          flash._t = setTimeout(() => hint.textContent = '', timeout);
+        }
+
+        // 1) Compartilhamento nativo (Web Share API)
+        async function onShareClick() {
+          const { url, title, text } = getShareData();
+          if (navigator.share) {
+            try {
+              await navigator.share({ title, text, url });
+              // opcional: feedback
+              flash('Compartilhado!');
+            } catch (err) {
+              // Abort (usuário cancelou) não é erro de UX; outros casos: faz fallback
+              if (err && err.name !== 'AbortError') {
+                showFallbackLinks({ url, title, text });
+                fbk.hidden = false;
+                flash('Escolha um app abaixo 👇');
+              }
+            }
+          } else {
+            // Sem suporte → fallback
+            showFallbackLinks({ url, title, text });
+            fbk.hidden = false;
+            flash('Escolha um app abaixo 👇');
+          }
+        }
+
+        // 2) Fallback com links diretos para apps
+        function showFallbackLinks({ url, title, text }) {
+          const encodedURL = encodeURIComponent(url);
+          const encodedText = encodeURIComponent(`${text} ${url}`);
+          const encodedTitle = encodeURIComponent(title);
+
+          // WhatsApp (funciona web/mobile)
+          waLink.href = `https://api.whatsapp.com/send?text=${encodedText}`;
+
+          // Telegram
+          tgLink.href = `https://t.me/share/url?url=${encodedURL}&text=${encodedText}`;
+
+          // X (Twitter)
+          xLink.href = `https://twitter.com/intent/tweet?url=${encodedURL}&text=${encodedText}`;
+
+          // Facebook (compartilhamento web)
+          fbLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedURL}`;
+        }
+
+        // 3) Copiar link (separado)
+        async function onCopyClick() {
+          const { url } = getShareData();
+          try {
+            await copy(url);
+            flash('Link copiado!');
+          } catch {
+            flash('Não foi possível copiar');
+          }
+        }
+
+        shareBtn.addEventListener('click', onShareClick);
+        copyBtn.addEventListener('click', onCopyClick);
+
+        // UX: se o navegador tem Web Share, você pode esconder o botão "Copiar" se quiser
+        if (navigator.share) {
+          // copyBtn.hidden = true; // opcional
+        }
+      })();
+    </script>
+
+
     <!-- IMPORTAR DADOS DE LINHAS (dinâmico, vindos do plugin original) -->
     <?php foreach ($linhas_files as $f): ?>
       <script src="<?php echo esc_url($f['url']); ?>"></script>
@@ -208,164 +332,45 @@ add_action('template_redirect', function () {
     <!-- FUNÇÃO COMPARTILHAR URL -->
 
     <script>
-        /*(function () {
-          const btn = document.getElementById('copyLinkBtn');
-          const hint = document.getElementById('copyLinkHint');
+      /*(function () {
+        const btn = document.getElementById('copyLinkBtn');
+        const hint = document.getElementById('copyLinkHint');
 
-          async function copy(text) {
-            // Clipboard API (HTTPS/localhost)
-            if (navigator.clipboard && window.isSecureContext) {
-              await navigator.clipboard.writeText(text);
-              return true;
-            }
-            // Fallback (funciona em + navegadores)
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.setAttribute('readonly', '');
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            const ok = document.execCommand('copy');
-            document.body.removeChild(ta);
-            if (!ok) throw new Error('copy fallback falhou');
+        async function copy(text) {
+          // Clipboard API (HTTPS/localhost)
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
             return true;
           }
-
-          async function onCopyClick() {
-            const url = window.location.href;           // pega o URL no momento do clique
-            try {
-              await copy(url);
-              hint.textContent = 'Link copiado!';
-            } catch {
-              hint.textContent = 'Não foi possível copiar';
-            }
-            // feedback rápido (você estiliza depois)
-            clearTimeout(onCopyClick._t);
-            onCopyClick._t = setTimeout(() => hint.textContent = '', 1500);
-          }
-
-          btn.addEventListener('click', onCopyClick);
-        })();*/
-        <!-- BOTÕES -->
-        < button id = "shareBtn" class="fab-share" type = "button" aria - label="Compartilhar" >📤 <span class="label">Compartilhar</span></button >
-  <button id="copyLinkBtn" class="fab-copy" type="button" aria-label="Copiar link">🔗 <span class="label">Copiar endereço</span></button>
-  <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
-
-  <!--OPCIONAL: menu de fallback com apps-- >
-  <div id="shareFallback" hidden>
-    <a id="waLink"   target="_blank" rel="noopener">WhatsApp</a> ·
-    <a id="tgLink"   target="_blank" rel="noopener">Telegram</a> ·
-    <a id="xLink"    target="_blank" rel="noopener">X/Twitter</a> ·
-    <a id="fbLink"   target="_blank" rel="noopener">Facebook</a>
-  </div>
-
-  <script>
-  (function () {
-    const shareBtn = document.getElementById('shareBtn');
-    const copyBtn  = document.getElementById('copyLinkBtn');
-    const hint     = document.getElementById('copyLinkHint');
-    const fbk      = document.getElementById('shareFallback');
-    const waLink   = document.getElementById('waLink');
-    const tgLink   = document.getElementById('tgLink');
-    const xLink    = document.getElementById('xLink');
-    const fbLink   = document.getElementById('fbLink');
-
-    // Texto padrão (ajuste como quiser)
-    function getShareData() {
-      const url   = window.location.href;
-      const title = document.title || 'Veja isto';
-      const text  = 'Dá uma olhada:';
-      return { url, title, text };
-    }
-
-    // COPIAR (seu código com leve ajuste)
-    async function copy(text) {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (!ok) throw new Error('copy fallback falhou');
-      return true;
-    }
-
-    function flash(msg, timeout = 1500) {
-      hint.textContent = msg;
-      clearTimeout(flash._t);
-      flash._t = setTimeout(() => hint.textContent = '', timeout);
-    }
-
-    // 1) Compartilhamento nativo (Web Share API)
-    async function onShareClick() {
-      const { url, title, text } = getShareData();
-      if (navigator.share) {
-        try {
-          await navigator.share({ title, text, url });
-          // opcional: feedback
-          flash('Compartilhado!');
-        } catch (err) {
-          // Abort (usuário cancelou) não é erro de UX; outros casos: faz fallback
-          if (err && err.name !== 'AbortError') {
-            showFallbackLinks({ url, title, text });
-            fbk.hidden = false;
-            flash('Escolha um app abaixo 👇');
-          }
+          // Fallback (funciona em + navegadores)
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (!ok) throw new Error('copy fallback falhou');
+          return true;
         }
-      } else {
-        // Sem suporte → fallback
-        showFallbackLinks({ url, title, text });
-        fbk.hidden = false;
-        flash('Escolha um app abaixo 👇');
-      }
-    }
 
-    // 2) Fallback com links diretos para apps
-    function showFallbackLinks({ url, title, text }) {
-      const encodedURL   = encodeURIComponent(url);
-      const encodedText  = encodeURIComponent(`${text} ${url}`);
-      const encodedTitle = encodeURIComponent(title);
+        async function onCopyClick() {
+          const url = window.location.href;           // pega o URL no momento do clique
+          try {
+            await copy(url);
+            hint.textContent = 'Link copiado!';
+          } catch {
+            hint.textContent = 'Não foi possível copiar';
+          }
+          // feedback rápido (você estiliza depois)
+          clearTimeout(onCopyClick._t);
+          onCopyClick._t = setTimeout(() => hint.textContent = '', 1500);
+        }
 
-      // WhatsApp (funciona web/mobile)
-      waLink.href = `https://api.whatsapp.com/send?text=${encodedText}`;
-
-      // Telegram
-      tgLink.href = `https://t.me/share/url?url=${encodedURL}&text=${encodedText}`;
-
-      // X (Twitter)
-      xLink.href  = `https://twitter.com/intent/tweet?url=${encodedURL}&text=${encodedText}`;
-
-      // Facebook (compartilhamento web)
-      fbLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedURL}`;
-    }
-
-    // 3) Copiar link (separado)
-    async function onCopyClick() {
-      const { url } = getShareData();
-      try {
-        await copy(url);
-        flash('Link copiado!');
-      } catch {
-        flash('Não foi possível copiar');
-      }
-    }
-
-    shareBtn.addEventListener('click', onShareClick);
-    copyBtn.addEventListener('click', onCopyClick);
-
-    // UX: se o navegador tem Web Share, você pode esconder o botão "Copiar" se quiser
-    if (navigator.share) {
-      // copyBtn.hidden = true; // opcional
-    }
-  })();
+        btn.addEventListener('click', onCopyClick);
+      })();*/
     </script>
 
     </script>
