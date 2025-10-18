@@ -3,7 +3,7 @@
  * Plugin Name: Horário de Ônibus Itapetininga (Derivado)
  * Plugin URI:  https://github.com/alphamontanari/horario-de-onibus-itapetininga
  * Description: Fork com tema/JS próprios em rota alternativa (/horario-de-onibus-itapetininga) consumindo as linhas do plugin original.
- * Version:     0.1.1
+ * Version:     0.1.2
  * Author:      André Luiz Montanari
  * Author URI:  https://github.com/alphamontanari
  * License:     GPLv3

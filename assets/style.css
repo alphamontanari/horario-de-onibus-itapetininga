@@ -3,20 +3,20 @@
    ========================= */
 :root{
   /* Core */
-  --brand: #7a3cff;           /* roxinho base */
-  --brand-2: #9c6bff;         /* roxinho claro */
+  --brand: #0088c7;           /* roxinho base */
+  --brand-2: #00AAC7;         /* roxinho claro */
   --brand-3: #4f22ff;         /* roxinho escuro */
-  --ink: #812d8d;             /* slate-900 */
-  --muted: #850097;           /* lavanda acinzentada */
+  --ink: #147c8f;             /* slate-900 */
+  --muted: #056c7e;           /* lavanda acinzentada */
 
   /* Surface */
   --bg: #f7f7fb;              /* fundo claro */
-  --card: #7a3cff;
+  --card: #0a6f81;
 ;
   --line: #e8ecf7;
 
   /* Tabs */
-  --aba: #7a3cff;
+  --aba: #00AAC7;
   --abaActive: #ffffff;
 
   /* Radii + shadows */
@@ -41,7 +41,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-u
   padding: 32px 22px;
   color: #fff;
   background:
-    radial-gradient(1200px 400px at 10% -10%, #b892ff33 0%, transparent 55%),
+    radial-gradient(1200px 400px at 10% -10%, #00414d 0%, transparent 55%),
     radial-gradient(900px 500px at 110% 10%, #6e36ff44 0%, transparent 50%),
     linear-gradient(135deg, #5a20ff 0%, #7a3cff 45%, #9b6bff 100%);
   box-shadow: var(--elev-2);
@@ -214,7 +214,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-u
     background:
       radial-gradient(1100px 420px at -10% 0%, #926aff2b 0%, transparent 55%),
       radial-gradient(700px 420px at 110% 10%, #4f22ff3a 0%, transparent 50%),
-      linear-gradient(135deg, #2a0e7d 0%, #4f22ff 40%, #7a3cff 100%);
+      linear-gradient(135deg, #2a0e7d 0%, #4f22ff 40%, ##00AAC7 100%);
   }
   .crumbs button, .card, .line-btn, .time-btn{background:var(--card); border-color:var(--line)}
   .search input{background:var(--card); color:var(--ink); box-shadow: none}
