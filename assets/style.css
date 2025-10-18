@@ -224,3 +224,77 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-u
   .trajeto li{border-left-color:#9b6bff}
 }
 */
+
+
+/* Botão flutuante (Floating Action Button) */
+.fab-copy {
+    position: fixed;
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 1000;
+
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+
+    padding: .65rem .9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, .06);
+    background: #fff;
+    color: #0f172a;
+    /* slate-900 */
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, .08),
+        0 8px 24px rgba(0, 0, 0, .08);
+
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+    touch-action: manipulation;
+}
+
+/* Efeito hover/focus */
+.fab-copy:hover {
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, .10),
+        0 16px 32px rgba(0, 0, 0, .10);
+    transform: translateY(-1px);
+}
+
+.fab-copy:active {
+    transform: translateY(0);
+}
+
+.fab-copy:focus-visible {
+    outline: 3px solid #86b7fe;
+    /* anel de foco acessível */
+    outline-offset: 2px;
+}
+
+/* Texto do botão em telas bem pequenas: mostra só o ícone */
+@media (max-width: 420px) {
+    .fab-copy .label {
+        display: none;
+    }
+}
+
+/* Tema escuro opcional */
+@media (prefers-color-scheme: dark) {
+    .fab-copy {
+        background: #0b1220;
+        /* quase preto */
+        color: #e5eefc;
+        border-color: rgba(255, 255, 255, .08);
+        box-shadow:
+            0 2px 6px rgba(0, 0, 0, .35),
+            0 10px 24px rgba(0, 0, 0, .4);
+    }
+
+    .fab-copy:hover {
+        box-shadow:
+            0 6px 14px rgba(0, 0, 0, .45),
+            0 14px 36px rgba(0, 0, 0, .5);
+    }
+}
