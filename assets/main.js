@@ -1,11 +1,23 @@
 /* ====== STATE ====== */
+/*
 const state = {
   nivel: 1,
   linhaKey: null,
   hora: null,
   periodo: null,
   query: "",
+};*/
+
+// ===== STATE ÚNICO =====
+window.appState = window.appState ?? {
+  nivel: 1,
+  linhaKey: null,
+  hora: null,
+  periodo: null,
+  query: "", // mantenho o nome original
+  n1View: "all", // 'all' | 'fav'
 };
+const state = window.appState;
 
 const app = document.getElementById("app");
 const crumbs = document.getElementById("crumbs");
@@ -24,9 +36,9 @@ function escapeHtml(s) {
   return String(s ?? "").replace(
     /[&<>"']/g,
     (m) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
-      m
-    ])
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
+        m
+      ])
   );
 }
 function btnCrumb(text, fn) {
@@ -55,7 +67,7 @@ function snapshotState() {
     linhaKey: state.linhaKey,
     periodo: state.periodo,
     hora: state.hora,
-    query: state.query
+    query: state.query,
   };
 }
 
@@ -127,7 +139,6 @@ window.addEventListener("popstate", (evt) => {
   // Empilha estado inicial como replace (não cria um passo “fantasma”)
   pushHistory({ replace: true });
 })();
-
 
 // Extrai todos os locais (para busca) a partir da estrutura de períodos/horários
 function locaisFromHorarios(horarios) {
@@ -208,30 +219,33 @@ function render() {
 
   crumbs.innerHTML = parts.join("");
 
-
-
   // Empilha o estado atual no histórico, exceto quando ele veio de um popstate
   if (!_navigatingFromPop) {
     pushHistory(); // cria um passo de histórico por mudança de nível/breadcrumb
   }
-
-
-
 
   if (state.nivel === 1) return renderNivel1();
   if (state.nivel === 2) return renderNivel2();
   if (state.nivel === 3) return renderNivel3();
 }
 
-/* ====== NÍVEL 2 — períodos e horários ====== */
-
 /* cache interno para não recriar input/list a cada chamada */
+/*
 let _n1Wrap = null,
   _n1List = null,
   _n1Input = null,
   _n1Timer = null;
+  */
+
+  // Nível 1 (busca + lista) – nós persistentes
+let _n1Root = null;    // container do nível 1
+let _n1Form = null;    // <form> da busca
+let _n1Input = null;   // <input> de busca
+let _n1List = null;    // container da lista
+
 
 /* ====== NÍVEL 1 — lista de linhas + busca (sem render() na digitação) ====== */
+/*
 function renderNivel1() {
   // cria apenas uma vez
   if (!_n1Wrap) {
@@ -278,6 +292,201 @@ function renderNivel1() {
   // pinta/repinta apenas os cards
   updateNivel1Lista();
 }
+  */
+
+function renderNivel1() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  if (!_n1Root) {
+    _n1Root = document.createElement("div");
+
+    // ---- Abas
+    const tabs = document.createElement("div");
+    tabs.className = "n1-tabs";
+    const mkTab = (id, rotulo) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab";
+      b.textContent = rotulo;
+      b.addEventListener("click", () => {
+        state.n1View = id;
+        updateNivel1Tabs();      // só troca estilo das abas
+        updateNivel1List();      // refaz apenas a lista
+      });
+      b.dataset.view = id;
+      return b;
+    };
+    tabs.append(mkTab("all", "Todas"), mkTab("fav", "Favoritas"));
+    _n1Root.appendChild(tabs);
+
+    // ---- Busca (form + botão)
+    _n1Form = document.createElement("form");
+    _n1Form.className = "n1-search";
+    _n1Form.innerHTML = `
+      <input type="search" placeholder="Pesquisar por ID, nome, partida, chegada ou bairro..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button type="submit" class="btn-search">Pesquisar</button>
+      <button type="button" class="btn-clear" title="Limpar">Limpar</button>
+    `;
+    _n1Input = _n1Form.querySelector('input[type="search"]');
+    const submit = _n1Form.querySelector(".btn-search");
+    const clear  = _n1Form.querySelector(".btn-clear");
+
+    // valor inicial
+    _n1Input.value = state.query || "";
+
+    // SUBMIT: aplica filtro e mantém foco (teclado aberto)
+    _n1Form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      state.query = _n1Input.value.trim();
+      updateNivel1List();                 // atualiza só a lista
+      _n1Input.focus({ preventScroll: true }); // mantém o teclado
+    });
+
+    // LIMPAR
+    clear.addEventListener("click", () => {
+      _n1Input.value = "";
+      state.query = "";
+      updateNivel1List();
+      _n1Input.focus({ preventScroll: true });
+    });
+
+    _n1Root.appendChild(_n1Form);
+
+    // ---- Lista
+    _n1List = document.createElement("div");
+    _n1List.className = "n1-list";
+    _n1Root.appendChild(_n1List);
+  }
+
+  // anexa o root ao app (se já existia, só reanexa)
+  app.appendChild(_n1Root);
+
+  // pinta estado visual das abas e gera lista
+  updateNivel1Tabs();
+  updateNivel1List();
+}
+
+function updateNivel1Tabs() {
+  const tabs = _n1Root.querySelectorAll(".n1-tabs .tab");
+  tabs.forEach(t => {
+    const active = t.dataset.view === state.n1View;
+    t.classList.toggle("active", active);
+  });
+}
+
+function updateNivel1List() {
+  if (!_n1List) return;
+  _n1List.innerHTML = "";
+
+  // LINHAS (objeto) -> array com _key
+  const linhas = Object.entries(LINHAS).map(([key, l]) => ({ ...l, _key: key }));
+
+  // saneia favoritos órfãos (por CHAVE)
+  const validKeys = new Set(linhas.map(l => String(l._key)));
+  const cleaned = loadFavs().filter(k => validKeys.has(String(k)));
+  if (cleaned.length !== loadFavs().length) saveFavs(cleaned);
+
+  // filtro por abas
+  let source = linhas;
+  if (state.n1View === "fav") {
+    const favs = loadFavs();
+    source = linhas.filter(l => favs.includes(String(l._key)));
+  }
+
+  // filtro da busca (apenas quando clica em "Pesquisar" ou Enter)
+  const q = (state.query || "").trim().toLowerCase();
+  if (q) {
+    source = source.filter(l => {
+      const hay = [
+        l.id, l.cod, l.nome, l.partida, l.chegada,
+        Array.isArray(l.bairros) ? l.bairros.join(" ") : ""
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  if (!source.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.innerHTML = (state.n1View === "fav")
+      ? "Você ainda não possui linhas favoritas. Toque na ⭐ de uma linha para favoritar."
+      : "Nenhum resultado para sua busca.";
+    _n1List.appendChild(empty);
+    return;
+  }
+
+  source.forEach(l => _n1List.appendChild(renderLinhaCard(l)));
+}
+
+
+
+// renderiza favoritar
+
+function renderLinhaCard(linha) {
+  const card = document.createElement("div");
+  card.className = "linha-card";
+  card.tabIndex = 0;
+
+  card.addEventListener("click", () => navegarParaNivel2(linha._key));
+  card.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navegarParaNivel2(linha._key); }
+  });
+
+  const header = document.createElement("div");
+  header.className = "linha-head";
+
+  const title = document.createElement("div");
+  title.className = "linha-title";
+  title.textContent = `LINHA ${String(linha.id).padStart(2, "0")}${linha.sufixo || ""}`;
+
+  // Verifica se está favoritada
+  const isFavorita = isFav(linha._key);
+
+  // Cria a estrela com estado visual
+  const favBtn = document.createElement("span");
+  favBtn.className = "fav-btn" + (isFavorita ? " active" : "");
+  favBtn.setAttribute("role", "button");
+  favBtn.setAttribute("aria-pressed", String(isFavorita));
+  favBtn.setAttribute("aria-label", isFavorita ? "Remover dos favoritos" : "Adicionar aos favoritos");
+  favBtn.textContent = isFavorita ? "★" : "☆"; // preenchida ou contorno
+
+  favBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    toggleFav(linha._key);
+
+    const active = isFav(linha._key);
+    favBtn.classList.toggle("active", active);
+    favBtn.textContent = active ? "★" : "☆";
+    favBtn.setAttribute("aria-pressed", String(active));
+    favBtn.setAttribute("aria-label", active ? "Remover dos favoritos" : "Adicionar aos favoritos");
+
+    if (state.n1View === "fav") updateNivel1List(); // atualiza se estiver na aba Favoritas
+  });
+
+  header.append(title, favBtn);
+
+  const sub = document.createElement("div");
+  sub.className = "linha-sub";
+  sub.textContent = linha.descritivo || `${linha.partida || linha.origem} → ${linha.chegada || linha.destino}`;
+
+  card.append(header, sub);
+  return card;
+}
+
+
+
+
+
+function navegarParaNivel2(linhaKey) {
+  state.linhaKey = linhaKey;
+  state.nivel = 2;
+  state.hora = null;
+  state.periodo = null;
+  render();
+}
+
+
 
 /* Atualiza SÓ os cards da lista do nível 1 */
 function updateNivel1Lista() {
@@ -351,6 +560,7 @@ function updateNivel1Lista() {
   });
 }
 
+/* ====== NÍVEL 2 — períodos e horários ====== */
 function renderNivel2() {
   const pair = getLinha();
   if (!pair) return;
@@ -375,33 +585,46 @@ function renderNivel2() {
   // ordem amigável das abas (se não existir, cai pro final)
   const order = ["dia_de_semana", "sabado", "domingo_feriado"];
   const ordered = periodKeys.slice().sort((a, b) => {
-    const ia = order.indexOf(a); const ib = order.indexOf(b);
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
 
   // Qual aba começa ativa? prioriza o state.periodo se existir
-  const initialPk = ordered.includes(state.periodo) ? state.periodo : ordered[0];
+  const initialPk = ordered.includes(state.periodo)
+    ? state.periodo
+    : ordered[0];
 
   // Card com as abas
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = `
     <div class="tabs" role="tablist" aria-label="Períodos">
-      ${ordered.map((pk) => `
+      ${ordered
+        .map(
+          (pk) => `
         <button class="tab${pk === initialPk ? " active" : ""}"
                 role="tab"
                 aria-selected="${pk === initialPk}"
                 data-pk="${pk}">
           ${escapeHtml(labelPeriodo(pk))}
         </button>
-      `).join("")}
+      `
+        )
+        .join("")}
     </div>
     <div class="tab-panels">
-      ${ordered.map((pk) => `
-        <div class="tab-panel${pk === initialPk ? " active" : ""}" role="tabpanel" data-pk="${pk}">
+      ${ordered
+        .map(
+          (pk) => `
+        <div class="tab-panel${
+          pk === initialPk ? " active" : ""
+        }" role="tabpanel" data-pk="${pk}">
           <div class="time-grid" data-pk="${pk}"></div>
         </div>
-      `).join("")}
+      `
+        )
+        .join("")}
     </div>
   `;
   app.appendChild(card);
@@ -409,12 +632,12 @@ function renderNivel2() {
   // Preenche cada painel com os horários
   let anyDiferenciado = false;
 
-  ordered.forEach(pk => {
+  ordered.forEach((pk) => {
     const bloco = l.horarios[pk] || {};
     const horariosList = Object.keys(bloco).sort((a, b) => toMin(a) - toMin(b));
     const panel = card.querySelector(`.time-grid[data-pk="${pk}"]`);
 
-    horariosList.forEach(h => {
+    horariosList.forEach((h) => {
       const info = bloco[h] || {};
       const tipo = (info.trajeto || "normal").toLowerCase();
       const isDiff = tipo !== "normal";
@@ -429,7 +652,10 @@ function renderNivel2() {
         ? `${escapeHtml(h)}<span class="traj-flag" aria-hidden="true">*</span>`
         : `${escapeHtml(h)}`;
       b.title = isDiff ? "Trajeto diferenciado" : "Trajeto normal";
-      b.setAttribute("aria-label", isDiff ? `${h}, trajeto diferenciado` : `${h}, trajeto normal`);
+      b.setAttribute(
+        "aria-label",
+        isDiff ? `${h}, trajeto diferenciado` : `${h}, trajeto normal`
+      );
       b.dataset.trajeto = tipo; // útil para CSS/JS futuro
 
       b.addEventListener("click", () => {
@@ -447,20 +673,20 @@ function renderNivel2() {
   const tabs = Array.from(card.querySelectorAll(".tab"));
   const panels = Array.from(card.querySelectorAll(".tab-panel"));
 
-  tabs.forEach(tab => {
+  tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       const pk = tab.dataset.pk;
 
       // guarda período no state (ajuda o histórico/voltar)
       state.periodo = pk;
 
-      tabs.forEach(t => {
+      tabs.forEach((t) => {
         const active = t === tab;
         t.classList.toggle("active", active);
         t.setAttribute("aria-selected", active ? "true" : "false");
       });
 
-      panels.forEach(p => {
+      panels.forEach((p) => {
         p.classList.toggle("active", p.dataset.pk === pk);
       });
     });
@@ -479,12 +705,10 @@ function renderNivel2() {
     app.appendChild(alert);
   }
 
-  addPdfDownloadButton(head, l);
+  //addPdfDownloadButton(head, l);
 }
 
-
 /* ====== NÍVEL 3 — atendimento daquele horário (ordenado por HH:MM) ====== */
-
 
 function renderNivel3() {
   const pair = getLinha();
@@ -508,7 +732,8 @@ function renderNivel3() {
   const servicoRaw =
     registro.servico ??
     l.horarios?.[state.periodo]?.[state.hora]?.servico ??
-    l.servico ?? null;
+    l.servico ??
+    null;
 
   // Normaliza para rótulo legível
   const mapServico = {
@@ -522,13 +747,13 @@ function renderNivel3() {
     interbairros: "Interbairros",
     experimental: "Experimental",
   };
-  const servicoKey = String(servicoRaw || "").trim().toLowerCase();
-  const servicoLabel = servicoKey
-    ? (mapServico[servicoKey] || servicoRaw)
-    : "";
+  const servicoKey = String(servicoRaw || "")
+    .trim()
+    .toLowerCase();
+  const servicoLabel = servicoKey ? mapServico[servicoKey] || servicoRaw : "";
 
   // tipo de itinerário com fallback para 'normal'
-  const tipo = String((registro.trajeto || "normal")).toLowerCase();
+  const tipo = String(registro.trajeto || "normal").toLowerCase();
   const isDiff = tipo !== "normal";
   const labelTipo = isDiff ? "Itinerário diferenciado" : "Itinerário normal";
 
@@ -545,13 +770,21 @@ function renderNivel3() {
         <strong>LINHA ${escapeHtml(l.id)}</strong> · ${escapeHtml(l.nome)}
       </div>
       <div class="muted">
-        ${escapeHtml(labelPeriodo(state.periodo))} · Saída: <strong>${escapeHtml(state.hora)}</strong>
+        ${escapeHtml(
+          labelPeriodo(state.periodo)
+        )} · Saída: <strong>${escapeHtml(state.hora)}</strong>
       </div>
-      ${servicoLabel ? `
+      ${
+        servicoLabel
+          ? `
         <div class="muted">
-          Serviço: <span class="chip chip-serv">${escapeHtml(servicoLabel)}</span>
+          Serviço: <span class="chip chip-serv">${escapeHtml(
+            servicoLabel
+          )}</span>
         </div>
-      ` : ""}
+      `
+          : ""
+      }
     </div>
 
     <div class="meta-row" style="margin-top:.5rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -563,35 +796,44 @@ function renderNivel3() {
       </div>
     </div>
 
-    ${isDiff ? `
+    ${
+      isDiff
+        ? `
       <div class="alert alert-info" role="status" aria-live="polite" style="margin-top:.5rem">
         Atenção: este horário realiza <strong>itinerário diferenciado</strong>. Verifique os pontos atendidos abaixo.
       </div>
-    ` : ""}
+    `
+        : ""
+    }
 
     <div class="itinerario" style="margin-top:.75rem">
       <strong>Atendimento / Trajeto (estimado)</strong>
       <ol class="trajeto">
-        ${traj.map((p, i) => `
+        ${traj
+          .map(
+            (p, i) => `
           <li>
-            <div style="font-weight:600; font-size:0.8rem">${escapeHtml(p.hora)} · ${escapeHtml(p.local)}</div>
+            <div style="font-weight:600; font-size:0.8rem">${escapeHtml(
+              p.hora
+            )} · ${escapeHtml(p.local)}</div>
             <div class="muted">
-              ${i === 0 ? "Saída" : (i === traj.length - 1 ? "Ponto final" : "&nbsp;")}
+              ${
+                i === 0
+                  ? "Saída"
+                  : i === traj.length - 1
+                  ? "Ponto final"
+                  : "&nbsp;"
+              }
             </div>
           </li>
-        `).join("")}
+        `
+          )
+          .join("")}
       </ol>
     </div>
   `;
   app.appendChild(card);
 }
-
-
-
-
-
-
-
 
 /* ====== PDF: Helpers de dependências ====== */
 function ensureScript(src) {
@@ -606,8 +848,12 @@ function ensureScript(src) {
 }
 
 async function ensurePdfLibs() {
-  await ensureScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
-  await ensureScript("https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js");
+  await ensureScript(
+    "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
+  );
+  await ensureScript(
+    "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"
+  );
 }
 
 /* ====== PDF: Botão no nível 2 ====== */
@@ -652,7 +898,9 @@ function splitHoursByNight(periodObj) {
   const dayHoras = [];
   const nightHoras = [];
   for (const h of all) {
-    (timeToMinutes(h) >= NIGHT_THRESHOLD_MINUTES ? nightHoras : dayHoras).push(h);
+    (timeToMinutes(h) >= NIGHT_THRESHOLD_MINUTES ? nightHoras : dayHoras).push(
+      h
+    );
   }
   return { dayHoras, nightHoras };
 }
@@ -663,7 +911,10 @@ function splitHoursByNight(periodObj) {
  * Se não achar, cai para a primeira hora do período inteiro.
  */
 function getOrderedStopsForSubset(periodObj, subsetHoras) {
-  const horas = (subsetHoras && subsetHoras.length) ? subsetHoras.slice() : Object.keys(periodObj || {});
+  const horas =
+    subsetHoras && subsetHoras.length
+      ? subsetHoras.slice()
+      : Object.keys(periodObj || {});
   if (!horas.length) return [];
   horas.sort(naturalTimeSort);
   const primeiro = periodObj[horas[0]];
@@ -700,14 +951,19 @@ async function generateLineSchedulePDF(linha) {
     await ensurePdfLibs();
     const { jsPDF } = window.jspdf;
 
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
     const marginX = 36;
     const marginY = 40;
 
-    const title = `LINHA ${linha.id} — ${linha.partida} => ${linha.chegada}`.trim();
+    const title =
+      `LINHA ${linha.id} — ${linha.partida} => ${linha.chegada}`.trim();
     const dateStr = new Date().toLocaleDateString("pt-BR");
 
-    const periodKeys = (Object.keys(linha.horarios || {}))
+    const periodKeys = Object.keys(linha.horarios || {})
       .filter((k) => PERIOD_ORDER.includes(k))
       .sort((a, b) => PERIOD_ORDER.indexOf(a) - PERIOD_ORDER.indexOf(b));
 
@@ -737,7 +993,11 @@ async function generateLineSchedulePDF(linha) {
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(11);
-        doc.text(`${labelBase} • Tabela Diurna • gerado em ${dateStr}`, marginX, marginY + 18);
+        doc.text(
+          `${labelBase} • Tabela Diurna • gerado em ${dateStr}`,
+          marginX,
+          marginY + 18
+        );
 
         // Tabela diurna
         doc.autoTable({
@@ -764,7 +1024,11 @@ async function generateLineSchedulePDF(linha) {
             const footer = `Prefeitura Municipal de Itapetininga • Secretaria de Trânsito • itapetininga.sp.gov.br  •  ${dateStr}`;
             doc.setFontSize(9);
             doc.setTextColor(100);
-            doc.text(footer, data.settings.margin.left, doc.internal.pageSize.getHeight() - 18);
+            doc.text(
+              footer,
+              data.settings.margin.left,
+              doc.internal.pageSize.getHeight() - 18
+            );
           },
         });
       }
@@ -781,7 +1045,11 @@ async function generateLineSchedulePDF(linha) {
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(11);
-        doc.text(`${labelBase} • Tabela Noturna (itinerário próprio) • gerado em ${dateStr}`, marginX, marginY + 18);
+        doc.text(
+          `${labelBase} • Tabela Noturna (itinerário próprio) • gerado em ${dateStr}`,
+          marginX,
+          marginY + 18
+        );
 
         // Tabela noturna
         doc.autoTable({
@@ -808,7 +1076,11 @@ async function generateLineSchedulePDF(linha) {
             const footer = `Prefeitura Municipal de Itapetininga • Secretaria de Trânsito • itapetininga.sp.gov.br  •  ${dateStr}`;
             doc.setFontSize(9);
             doc.setTextColor(100);
-            doc.text(footer, data.settings.margin.left, doc.internal.pageSize.getHeight() - 18);
+            doc.text(
+              footer,
+              data.settings.margin.left,
+              doc.internal.pageSize.getHeight() - 18
+            );
           },
         });
       }
@@ -821,6 +1093,29 @@ async function generateLineSchedulePDF(linha) {
     alert("Não foi possível gerar o PDF.");
   }
 }
+
+// ===== FAVORITOS (armazenar por CHAVE da LINHA) =====
+const FAV_KEY = "hourbus:favs:v1";
+
+const loadFavs = () => {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; }
+  catch { return []; }
+};
+
+const saveFavs = (arr) => {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...new Set(arr.map(String))]));
+};
+
+const isFav = (key) => loadFavs().includes(String(key));
+
+const toggleFav = (key) => {
+  const skey = String(key);
+  const favs = loadFavs();
+  const i = favs.indexOf(skey);
+  if (i >= 0) favs.splice(i, 1); else favs.push(skey);
+  saveFavs(favs);
+};
+
 
 
 /* start */

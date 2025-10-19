@@ -3,7 +3,7 @@
  * Plugin Name: Horário de Ônibus Itapetininga (Derivado)
  * Plugin URI:  https://github.com/alphamontanari/horario-de-onibus-itapetininga
  * Description: Fork com tema/JS próprios em rota alternativa (/horario-de-onibus-itapetininga) consumindo as linhas do plugin original.
- * Version:     0.1.7
+ * Version:     0.2.1
  * Author:      André Luiz Montanari
  * Author URI:  https://github.com/alphamontanari
  * License:     GPLv3
@@ -169,6 +169,8 @@ add_action('template_redirect', function () {
 
     <!-- CSS do fork -->
     <link rel="stylesheet" href="<?php echo esc_url(home_url('/' . HOR2_SLUG . '/style.css')); ?>">
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=share" />
 
   </head>
 
@@ -187,17 +189,24 @@ add_action('template_redirect', function () {
     </div>
 
 
-    <button id="copyLinkBtn" class="fab-copy" type="button" aria-label="Copiar link">
-      🔗 <span class="label">Copiar endereço</span>
+    <button id="shareBtn" class="fab-copy" type="button" aria-label="Compartilhar">
+      <span class="material-symbols-outlined">share</span>
     </button>
-    <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
 
-    <!-- BOTÕES -->
+    <!-- BOTÕES 
     <button id="shareBtn" class="fab-share" type="button" aria-label="Compartilhar">📤 <span
         class="label">Compartilhar</span></button>
     <button id="copyLinkBtn" class="fab-copy" type="button" aria-label="Copiar link">🔗 <span class="label">Copiar
         endereço</span></button>
     <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
+    
+    <button id="copyLinkBtn" class="fab-copy" type="button" aria-label="Copiar link">
+      🔗 <span class="label">Copiar endereço</span>
+    </button>
+    <span id="copyLinkHint" class="copy-hint" role="status" aria-live="polite"></span>
+    
+    
+    -->
 
     <!-- OPCIONAL: menu de fallback com apps -->
     <div id="shareFallback" hidden>
@@ -221,8 +230,8 @@ add_action('template_redirect', function () {
         // Texto padrão (ajuste como quiser)
         function getShareData() {
           const url = window.location.href;
-          const title = document.title || 'Veja isto';
-          const text = 'Dá uma olhada:';
+          const title = document.title || 'Horário de Ônibus de Itapetininga';
+          const text = 'ACESSE HORÁRIOS DE ÔNIBUS no 9Itapê, seu dia começa aqui!:';
           return { url, title, text };
         }
 
@@ -306,7 +315,7 @@ add_action('template_redirect', function () {
         }
 
         shareBtn.addEventListener('click', onShareClick);
-        copyBtn.addEventListener('click', onCopyClick);
+        copyBtn.addEventListener('click', onShareClick);
 
         // UX: se o navegador tem Web Share, você pode esconder o botão "Copiar" se quiser
         if (navigator.share) {
